@@ -1,0 +1,37 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.app = void 0;
+const express_1 = __importDefault(require("express"));
+const helmet_1 = __importDefault(require("helmet"));
+const cors_1 = __importDefault(require("cors"));
+const morgan_1 = __importDefault(require("morgan"));
+const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
+const express_mongo_sanitize_1 = __importDefault(require("express-mongo-sanitize"));
+// @ts-ignore - no types
+const xss_clean_1 = __importDefault(require("xss-clean"));
+const hpp_1 = __importDefault(require("hpp"));
+const env_1 = require("./config/env");
+const error_1 = require("./middleware/error");
+const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
+const product_routes_1 = __importDefault(require("./routes/product.routes"));
+const cart_routes_1 = __importDefault(require("./routes/cart.routes"));
+const order_routes_1 = __importDefault(require("./routes/order.routes"));
+exports.app = (0, express_1.default)();
+exports.app.use((0, helmet_1.default)());
+exports.app.use((0, cors_1.default)({ origin: env_1.env.clientOrigin, credentials: true }));
+exports.app.use(express_1.default.json({ limit: "10kb" }));
+exports.app.use((0, express_mongo_sanitize_1.default)());
+exports.app.use((0, xss_clean_1.default)());
+exports.app.use((0, hpp_1.default)());
+exports.app.use((0, morgan_1.default)(env_1.env.nodeEnv === "production" ? "combined" : "dev"));
+exports.app.use("/api/auth", (0, express_rate_limit_1.default)({ windowMs: 15 * 60_000, max: 50 }));
+exports.app.use("/api", (0, express_rate_limit_1.default)({ windowMs: 15 * 60_000, max: 500 }));
+exports.app.get("/api/health", (_req, res) => res.json({ ok: true }));
+exports.app.use("/api/auth", auth_routes_1.default);
+exports.app.use("/api/products", product_routes_1.default);
+exports.app.use("/api/cart", cart_routes_1.default);
+exports.app.use("/api/orders", order_routes_1.default);
+exports.app.use(error_1.errorHandler);
